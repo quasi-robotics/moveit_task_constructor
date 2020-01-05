@@ -96,6 +96,7 @@ bool isTargetPoseColliding(const planning_scene::PlanningScenePtr& scene, Eigen:
 
 	// consider all rigidly connected parent links as well
 	const robot_model::LinkModel* parent = robot_model::RobotModel::getRigidlyConnectedParentLinkModel(link);
+	const auto& considered_target_links = parent->getParentJointModel()->getDescendantLinkModels();
 	if (parent != link)  // transform pose into pose suitable to place parent
 		pose = pose * robot_state.getGlobalLinkTransform(link).inverse() * robot_state.getGlobalLinkTransform(parent);
 
@@ -125,7 +126,18 @@ bool isTargetPoseColliding(const planning_scene::PlanningScenePtr& scene, Eigen:
 	req.contacts = (collision_result != nullptr);
 	collision_detection::CollisionResult& res = collision_result ? *collision_result : result;
 	scene->checkCollision(req, res, robot_state, acm);
-	return res.collision;
+
+	// Only check collisions with target links
+	if (res.collision) {
+		for (const auto& contact : res.contacts) {
+			const auto& colliding_links = contact.first;
+			for (const auto& link : considered_target_links) {
+				if (colliding_links.first == link->getName() || colliding_links.second == link->getName())
+					return true;
+			}
+		}
+	}
+	return false;
 }
 
 std::string listCollisionPairs(const collision_detection::CollisionResult::ContactMap& contacts,
