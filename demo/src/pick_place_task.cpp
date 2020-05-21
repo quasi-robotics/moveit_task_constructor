@@ -271,6 +271,26 @@ void PickPlaceTask::init() {
 			grasp->insert(std::move(stage));
 		}
 
+		/******************************************************
+		 *          Add Object                                *
+		 ******************************************************/
+		{
+			auto stage = std::make_unique<stages::ModifyPlanningScene>("add object");
+			moveit_msgs::CollisionObject collision_object;
+
+			collision_object.header.frame_id = "panda_hand";
+			collision_object.id = "item_bb";
+			shape_msgs::SolidPrimitive box;
+			box.type = box.BOX;
+			box.dimensions = { 0.01, 0.01, 0.01 };
+			collision_object.primitives = { box };
+			geometry_msgs::Pose pose;
+			pose.position.z = 0.25 + box.dimensions.at(2) / 2;
+			pose.orientation.w = 1;
+			collision_object.primitive_poses = { pose };
+			stage->addObject(collision_object);
+			grasp->insert(std::move(stage));
+		}
 		/****************************************************
   .... *               Forbid collision (object support)  *
 		 ***************************************************/
