@@ -43,6 +43,7 @@
 #include <moveit/task_constructor/type_traits.h>
 #include <moveit_msgs/CollisionObject.h>
 #include <map>
+#include <moveit_visual_tools/moveit_visual_tools.h>
 
 namespace moveit {
 namespace core {
@@ -149,6 +150,7 @@ protected:
 	ApplyCallback callback_;
 
 protected:
+	moveit_visual_tools::MoveItVisualTools mvt;
 	// apply stored modifications to scene
 	InterfaceState apply(const InterfaceState& from, bool invert);
 	void processCollisionObject(planning_scene::PlanningScene& scene, const moveit_msgs::CollisionObject& object);

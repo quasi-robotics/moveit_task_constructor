@@ -39,12 +39,15 @@
 #include <moveit/task_constructor/stages/modify_planning_scene.h>
 #include <moveit/task_constructor/storage.h>
 #include <moveit/planning_scene/planning_scene.h>
+#include <tf2_eigen/tf2_eigen.h>
 
 namespace moveit {
 namespace task_constructor {
 namespace stages {
 
-ModifyPlanningScene::ModifyPlanningScene(const std::string& name) : PropagatingEitherWay(name) {}
+ModifyPlanningScene::ModifyPlanningScene(const std::string& name) : PropagatingEitherWay(name), mvt("world") {
+	mvt.setLifetime(1000);
+}
 
 void ModifyPlanningScene::attachObjects(const Names& objects, const std::string& attach_link, bool attach) {
 	auto it_inserted = attach_objects_.insert(std::make_pair(attach_link, std::make_pair(Names(), attach)));
@@ -119,8 +122,23 @@ InterfaceState ModifyPlanningScene::apply(const InterfaceState& from, bool inver
 	planning_scene::PlanningScenePtr scene = from.scene()->diff();
 	InterfaceState result(scene);
 	// add/remove objects
-	for (const auto& collision_object : collision_objects_)
+	for (const auto& collision_object : collision_objects_) {
 		processCollisionObject(*scene, collision_object);
+		if (collision_object.operation == moveit_msgs::CollisionObject::ADD) {
+			auto scene_frame = scene->getTransforms().getTransform("pleco_gripper_vac_cup_link");
+			mvt.publishAxisLabeled(scene_frame, "eef using scene transformation");
+			auto rs_frame = scene->getCurrentState().getGlobalLinkTransform("pleco_gripper_vac_cup_link");
+			mvt.publishAxisLabeled(rs_frame, "eef using robot state transformation");
+
+			moveit_msgs::CollisionObject co;
+			scene->getCollisionObjectMsg(co, "item_0");
+			Eigen::Isometry3d co_pose;
+			tf2::fromMsg(co.primitive_poses.at(0), co_pose);
+			mvt.publishWireframeCuboid(co_pose, co.primitives.at(0).dimensions.at(0), co.primitives.at(0).dimensions.at(1),
+			                           co.primitives.at(0).dimensions.at(2));
+			mvt.trigger();
+		}
+	}
 
 	// attach/detach objects
 	for (const auto& pair : attach_objects_)
