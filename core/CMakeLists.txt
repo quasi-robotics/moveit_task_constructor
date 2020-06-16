@@ -12,7 +12,6 @@ find_package(catkin REQUIRED COMPONENTS
 	roscpp
 	visualization_msgs
 	rviz_marker_tools
-	tf2
 )
 
 catkin_package(
