@@ -37,6 +37,32 @@
 #include <moveit_task_constructor_demo/pick_place_task.h>
 #include <rosparam_shortcuts/rosparam_shortcuts.h>
 
+moveit_msgs::Constraints getConstraint() {
+	moveit_msgs::Constraints goal;
+	goal.position_constraints.resize(1);
+	moveit_msgs::PositionConstraint& pcm = goal.position_constraints[0];
+	pcm.link_name = "panda_link1";
+	pcm.constraint_region.primitives.resize(1);
+	pcm.constraint_region.primitives[0].type = shape_msgs::SolidPrimitive::BOX;
+	pcm.constraint_region.primitives[0].dimensions.resize(3);
+	pcm.constraint_region.primitives[0].dimensions[shape_msgs::SolidPrimitive::BOX_X] = 1e-2;
+	pcm.constraint_region.primitives[0].dimensions[shape_msgs::SolidPrimitive::BOX_Y] = 1e-2;
+	pcm.constraint_region.primitives[0].dimensions[shape_msgs::SolidPrimitive::BOX_Z] = 1e-2;
+	pcm.header.frame_id = "world";
+	pcm.constraint_region.primitive_poses.resize(1);
+	pcm.constraint_region.primitive_poses[0].position.x = 2.0;
+	pcm.constraint_region.primitive_poses[0].position.y = 1.0;
+	pcm.constraint_region.primitive_poses[0].position.z +=
+	    pcm.constraint_region.primitives[0].dimensions[shape_msgs::SolidPrimitive::BOX_Z] / 2;
+	// orientation of constraint region does not affect anything, since it is a sphere
+	pcm.constraint_region.primitive_poses[0].orientation.x = 0.0;
+	pcm.constraint_region.primitive_poses[0].orientation.y = 0.0;
+	pcm.constraint_region.primitive_poses[0].orientation.z = 0.0;
+	pcm.constraint_region.primitive_poses[0].orientation.w = 1.0;
+	pcm.weight = 1.0;
+	return goal;
+}
+
 namespace moveit_task_constructor_demo {
 constexpr char LOGNAME[] = "pick_place_task";
 PickPlaceTask::PickPlaceTask(const std::string& task_name, const ros::NodeHandle& nh)
@@ -158,6 +184,7 @@ void PickPlaceTask::init() {
 		    "move to pick", stages::Connect::GroupPlannerVector{ { arm_group_name_, sampling_planner } });
 		stage->setTimeout(5.0);
 		stage->properties().configureInitFrom(Stage::PARENT);
+		stage->setPathConstraints(getConstraint());
 		t.add(std::move(stage));
 	}
 
