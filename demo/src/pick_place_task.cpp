@@ -41,7 +41,7 @@ moveit_msgs::Constraints getConstraint() {
 	moveit_msgs::Constraints goal;
 	goal.position_constraints.resize(1);
 	moveit_msgs::PositionConstraint& pcm = goal.position_constraints[0];
-	pcm.link_name = "panda_link1";
+	pcm.link_name = "panda_link8";
 	pcm.constraint_region.primitives.resize(1);
 	pcm.constraint_region.primitives[0].type = shape_msgs::SolidPrimitive::BOX;
 	pcm.constraint_region.primitives[0].dimensions.resize(3);
