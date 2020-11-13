@@ -183,7 +183,7 @@ Connect::makeSequential(const std::vector<robot_trajectory::RobotTrajectoryConst
 	assert(sub_trajectories.size() + 1 == intermediate_scenes.size());
 	auto scene_it = intermediate_scenes.begin();
 	planning_scene::PlanningSceneConstPtr start_ps = *scene_it;
-	const InterfaceState* state = &from;
+	const InterfaceState* state = &*states_.insert(states_.end(), InterfaceState(from));
 
 	SolutionSequence::container_type sub_solutions;
 	for (const auto& sub : sub_trajectories) {
@@ -198,11 +198,8 @@ Connect::makeSequential(const std::vector<robot_trajectory::RobotTrajectoryConst
 		subsolutions_.back().setStartState(*state);
 
 		// for all but last scene, create a new state
-		if (sub_solutions.size() < sub_trajectories.size()) {
-			state = &*states_.insert(states_.end(), InterfaceState(end_ps));
-			subsolutions_.back().setEndState(*state);
-		} else
-			subsolutions_.back().setEndState(to);
+		state = &*states_.insert(states_.end(), InterfaceState(end_ps));
+		subsolutions_.back().setEndState(*state);
 
 		start_ps = end_ps;
 	}

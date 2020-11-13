@@ -331,8 +331,14 @@ public:
 
 	const container_type& solutions() const { return subsolutions_; }
 
-	inline const InterfaceState* internalStart() const { return subsolutions_.front()->start(); }
-	inline const InterfaceState* internalEnd() const { return subsolutions_.back()->end(); }
+	inline const InterfaceState* internalStart() const {
+		assert(start() == nullptr || start()->scene() == subsolutions_.front()->start()->scene());
+		return subsolutions_.front()->start();
+	}
+	inline const InterfaceState* internalEnd() const {
+		assert(end() == nullptr || start()->scene() == subsolutions_.back()->end()->scene());
+		return subsolutions_.back()->end();
+	}
 
 private:
 	/// series of sub solutions
