@@ -45,6 +45,8 @@
 #include <moveit/utils/message_checks.h>
 #include <boost/algorithm/string/join.hpp>
 
+#include <moveit/trajectory_processing/time_optimal_trajectory_generation.h>
+
 namespace {
 
 // TODO: move to moveit::core::RobotModel
@@ -140,48 +142,80 @@ bool ExecuteTaskSolutionCapability::constructMotionPlan(const moveit_task_constr
 		state = scene->getCurrentState();
 	}
 
-	plan.plan_components_.reserve(solution.sub_trajectory.size());
-	for (size_t i = 0; i < solution.sub_trajectory.size(); ++i) {
-		const moveit_task_constructor_msgs::msg::SubTrajectory& sub_traj = solution.sub_trajectory[i];
+	// Using TOTG to parameterize the trajectory segments
+	moveit_msgs::msg::RobotTrajectory merged_trajectory_msg;
 
-		plan.plan_components_.emplace_back();
-		plan_execution::ExecutableTrajectory& exec_traj = plan.plan_components_.back();
+	if (solution.sub_trajectory.empty()) {
+		RCLCPP_ERROR_STREAM(LOGGER, "Passed solution have empty vector of sub-trajectory messages");
+		return false;
+	} else {
+		merged_trajectory_msg = solution.sub_trajectory.at(0).trajectory;
+		for (size_t i = 1; i < solution.sub_trajectory.size(); i++) {
+			const auto& trajectory_points = solution.sub_trajectory.at(i).trajectory.joint_trajectory.points;
+			merged_trajectory_msg.joint_trajectory.points.insert(merged_trajectory_msg.joint_trajectory.points.end(),
+			                                                     trajectory_points.begin(), trajectory_points.end());
+		}
+	}
 
-		// define individual variable for use in closure below
-		const std::string description = std::to_string(i + 1) + "/" + std::to_string(solution.sub_trajectory.size());
-		exec_traj.description_ = description;
+	// Make sure the timestamps are increasing to prevent having negative time when converting it to RobotTrajectory
+	// TOTG will change it later
+	auto time_from_start = rclcpp::Duration::from_seconds(1);
+	for (auto& point : merged_trajectory_msg.joint_trajectory.points) {
+		point.time_from_start = time_from_start;
+		time_from_start = time_from_start + rclcpp::Duration::from_seconds(1);
+	}
 
-		const moveit::core::JointModelGroup* group = nullptr;
-		{
-			std::vector<std::string> joint_names(sub_traj.trajectory.joint_trajectory.joint_names);
-			joint_names.insert(joint_names.end(), sub_traj.trajectory.multi_dof_joint_trajectory.joint_names.begin(),
-			                   sub_traj.trajectory.multi_dof_joint_trajectory.joint_names.end());
-			if (!joint_names.empty()) {
-				group = findJointModelGroup(*model, joint_names);
-				if (!group) {
-					RCLCPP_ERROR_STREAM(LOGGER, "Could not find JointModelGroup that actuates {"
-					                                << boost::algorithm::join(joint_names, ", ") << "}");
+	plan.plan_components_.emplace_back();
+	plan_execution::ExecutableTrajectory& exec_traj = plan.plan_components_.back();
+
+	// define individual variable for use in closure below
+	std::string description = "combined solutions of:\n";
+	for (const auto& sub_trajectory : solution.sub_trajectory)
+		description += "subsolution " + std::to_string(sub_trajectory.info.id) + " of stage " +
+		               std::to_string(sub_trajectory.info.stage_id) + "\n";
+
+	exec_traj.description_ = description;
+
+	const moveit::core::JointModelGroup* group = nullptr;
+	{
+		std::vector<std::string> joint_names(merged_trajectory_msg.joint_trajectory.joint_names);
+		joint_names.insert(joint_names.end(), merged_trajectory_msg.multi_dof_joint_trajectory.joint_names.begin(),
+		                   merged_trajectory_msg.multi_dof_joint_trajectory.joint_names.end());
+		if (!joint_names.empty()) {
+			group = findJointModelGroup(*model, joint_names);
+			if (!group) {
+				RCLCPP_ERROR_STREAM(LOGGER, "Could not find JointModelGroup that actuates {"
+				                                << boost::algorithm::join(joint_names, ", ") << "}");
+				return false;
+			}
+			RCLCPP_DEBUG(LOGGER, "Using JointModelGroup '%s' for execution", group->getName().c_str());
+		}
+	}
+	exec_traj.trajectory_ = std::make_shared<robot_trajectory::RobotTrajectory>(model, group);
+	exec_traj.trajectory_->setRobotTrajectoryMsg(state, merged_trajectory_msg);
+	trajectory_processing::TimeOptimalTrajectoryGeneration totg_trajectory_timing_algorithm;
+	if (!totg_trajectory_timing_algorithm.computeTimeStamps(*exec_traj.trajectory_)) {
+		RCLCPP_ERROR(LOGGER, "Calling computeTimeStamps on the trajectory failed");
+		return false;
+	}
+
+	/* TODO add action feedback and markers */
+	exec_traj.effect_on_success_ = [this, sub_trajectories = solution.sub_trajectory,
+	                                description](const plan_execution::ExecutableMotionPlan*) {
+		for (const auto& sub_trajectory : sub_trajectories) {
+			if (!moveit::core::isEmpty(sub_trajectory.scene_diff)) {
+				RCLCPP_DEBUG_STREAM(LOGGER, "apply effect of " << description);
+				if (!context_->moveit_cpp_->getPlanningSceneMonitor()->newPlanningSceneMessage(sub_trajectory.scene_diff))
 					return false;
-				}
-				RCLCPP_DEBUG(LOGGER, "Using JointModelGroup '%s' for execution", group->getName().c_str());
 			}
 		}
-		exec_traj.trajectory_ = std::make_shared<robot_trajectory::RobotTrajectory>(model, group);
-		exec_traj.trajectory_->setRobotTrajectoryMsg(state, sub_traj.trajectory);
+		return true;
+	};
 
-		/* TODO add action feedback and markers */
-		exec_traj.effect_on_success_ = [this, sub_traj,
-		                                description](const plan_execution::ExecutableMotionPlan* /*plan*/) {
-			if (!moveit::core::isEmpty(sub_traj.scene_diff)) {
-				RCLCPP_DEBUG_STREAM(LOGGER, "apply effect of " << description);
-				return context_->planning_scene_monitor_->newPlanningSceneMessage(sub_traj.scene_diff);
-			}
-			return true;
-		};
-
-		if (!moveit::core::isEmpty(sub_traj.scene_diff.robot_state) &&
-		    !moveit::core::robotStateMsgToRobotState(sub_traj.scene_diff.robot_state, state, true)) {
-			RCLCPP_ERROR_STREAM(LOGGER, "invalid intermediate robot state in scene diff of SubTrajectory " << description);
+	for (const auto& sub_trajectory : solution.sub_trajectory) {
+		if (!moveit::core::isEmpty(sub_trajectory.scene_diff.robot_state) &&
+		    !moveit::core::robotStateMsgToRobotState(sub_trajectory.scene_diff.robot_state, state, true)) {
+			RCLCPP_ERROR(LOGGER, "invalid intermediate robot state in scene diff of SubTrajectory");
 			return false;
 		}
 	}
