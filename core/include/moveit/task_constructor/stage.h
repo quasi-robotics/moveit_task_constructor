@@ -101,7 +101,7 @@ constexpr InterfaceFlags invert(InterfaceFlags f) {
 	if (f & WRITES_NEXT_START)
 		inv = inv | READS_START;
 	return inv;
-};
+}
 
 // some useful constants
 constexpr InterfaceFlags UNKNOWN;
