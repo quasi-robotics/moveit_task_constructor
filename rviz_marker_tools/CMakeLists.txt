@@ -25,7 +25,7 @@ add_library(${PROJECT_NAME} SHARED
 	src/marker_creation.cpp
 )
 
-ament_target_dependencies(${PROJECT_NAME} rclcpp visualization_msgs geometry_msgs Eigen3 urdfdom_headers)
+ament_target_dependencies(${PROJECT_NAME} rclcpp visualization_msgs geometry_msgs Eigen3 urdfdom_headers tf2_eigen)
 target_include_directories(${PROJECT_NAME}
   PUBLIC
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
