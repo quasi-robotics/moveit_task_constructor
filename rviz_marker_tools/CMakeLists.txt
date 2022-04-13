@@ -8,6 +8,7 @@ find_package(rviz2 REQUIRED)
 find_package(eigen3_cmake_module REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(tf2_eigen REQUIRED)
+find_package(urdfdom_headers REQUIRED)
 
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
@@ -24,7 +25,7 @@ add_library(${PROJECT_NAME} SHARED
 	src/marker_creation.cpp
 )
 
-ament_target_dependencies(${PROJECT_NAME} rclcpp visualization_msgs geometry_msgs Eigen3)
+ament_target_dependencies(${PROJECT_NAME} rclcpp visualization_msgs geometry_msgs Eigen3 urdfdom_headers)
 target_include_directories(${PROJECT_NAME}
   PUBLIC
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
