@@ -1,32 +1,31 @@
 cmake_minimum_required(VERSION 3.5)
 project(moveit_task_constructor_demo)
 
-if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 17)
-endif()
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(ament_cmake REQUIRED)
 
-find_package(rclcpp REQUIRED)
 find_package(moveit_core REQUIRED)
-find_package(moveit_task_constructor_core REQUIRED)
-find_package(moveit_task_constructor_msgs REQUIRED)
 find_package(moveit_ros_planning REQUIRED)
 find_package(moveit_ros_planning_interface REQUIRED)
-find_package(tf2_eigen REQUIRED)
+find_package(moveit_task_constructor_core REQUIRED)
+find_package(moveit_task_constructor_msgs REQUIRED)
+find_package(rclcpp REQUIRED)
 find_package(rosparam_shortcuts REQUIRED)
+find_package(tf2_eigen REQUIRED)
 
 set(THIS_PACKAGE_INCLUDE_DEPENDS
-    rclcpp
     moveit_core
-    moveit_task_constructor_core
-    moveit_task_constructor_msgs
     moveit_ros_planning
     moveit_ros_planning_interface
+    moveit_task_constructor_core
+    moveit_task_constructor_msgs
+    rclcpp
+    rosparam_shortcuts
     tf2_eigen
-    rosparam_shortcuts)
+)
 
 add_library(${PROJECT_NAME}_pick_place_task SHARED src/pick_place_task.cpp)
 ament_target_dependencies(${PROJECT_NAME}_pick_place_task ${THIS_PACKAGE_INCLUDE_DEPENDS})
@@ -53,6 +52,7 @@ demo(cartesian)
 demo(modular)
 demo(alternative_path_costs)
 demo(ik_clearance_cost)
+demo(fallbacks_move_to)
 
 demo(pick_place_demo)
 target_link_libraries(${PROJECT_NAME}_pick_place_demo ${PROJECT_NAME}_pick_place_task)

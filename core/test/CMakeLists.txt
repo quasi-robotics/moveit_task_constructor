@@ -26,7 +26,8 @@ if (BUILD_TESTING)
 		if(TEST_FILE) # Add launch test if .launch.py file was specified
       ament_add_gtest_executable(${PROJECT_NAME}-${TEST_NAME} ${SOURCES})
       add_launch_test(${TEST_FILE}
-        TARGET ${TEST_NAME} ARGS "test_binary:=$<TARGET_FILE:${PROJECT_NAME}-${TEST_NAME}>")
+        TARGET ${TEST_NAME}
+        ARGS "test_binary:=$<TARGET_FILE:${PROJECT_NAME}-${TEST_NAME}>")
 		else()
       if("${TYPE}" STREQUAL "gtest")
         ament_add_gtest(${PROJECT_NAME}-${TEST_NAME} ${SOURCES})
