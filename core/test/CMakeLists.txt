@@ -6,7 +6,7 @@
 if (BUILD_TESTING)
 	find_package(ament_cmake_gtest REQUIRED)
 	find_package(ament_cmake_gmock REQUIRED)
-  find_package(launch_testing_ament_cmake REQUIRED)
+	find_package(launch_testing_ament_cmake REQUIRED)
 
 	add_library(gtest_utils SHARED gtest_value_printers.cpp models.cpp stage_mockups.cpp)
 
@@ -24,16 +24,13 @@ if (BUILD_TESTING)
 		string(REGEX REPLACE "_" "-" TEST_NAME ${TEST_NAME})
 		# Configure build target
 		if(TEST_FILE) # Add launch test if .launch.py file was specified
-      ament_add_gtest_executable(${PROJECT_NAME}-${TEST_NAME} ${SOURCES})
-      add_launch_test(${TEST_FILE}
-        TARGET ${TEST_NAME}
-        ARGS "test_binary:=$<TARGET_FILE:${PROJECT_NAME}-${TEST_NAME}>")
-		else()
-      if("${TYPE}" STREQUAL "gtest")
-        ament_add_gtest(${PROJECT_NAME}-${TEST_NAME} ${SOURCES})
-      elseif("${TYPE}" STREQUAL "gmock")
-        ament_add_gmock(${PROJECT_NAME}-${TEST_NAME} ${SOURCES})
-      endif()
+			ament_add_gtest_executable(${PROJECT_NAME}-${TEST_NAME} ${SOURCES})
+			add_launch_test(${TEST_FILE} TARGET ${TEST_NAME}
+			                ARGS "test_binary:=$<TARGET_FILE:${PROJECT_NAME}-${TEST_NAME}>")
+		elseif("${TYPE}" STREQUAL "gtest")
+			ament_add_gtest(${PROJECT_NAME}-${TEST_NAME} ${SOURCES})
+		elseif("${TYPE}" STREQUAL "gmock")
+			ament_add_gmock(${PROJECT_NAME}-${TEST_NAME} ${SOURCES})
 		endif()
 		target_link_libraries(${PROJECT_NAME}-${TEST_NAME} ${PROJECT_NAME} ${PROJECT_NAME}_stages gtest_utils gtest_main)
 	endmacro()

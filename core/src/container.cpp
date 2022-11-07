@@ -37,7 +37,6 @@
 #include <moveit/task_constructor/container_p.h>
 #include <moveit/task_constructor/introspection.h>
 #include <moveit/task_constructor/merge.h>
-#include <moveit/task_constructor/moveit_compat.h>
 #include <moveit/planning_scene/planning_scene.h>
 #include <moveit/trajectory_processing/time_optimal_trajectory_generation.h>
 
@@ -58,8 +57,10 @@ namespace moveit {
 namespace task_constructor {
 
 // for debugging of how children interfaces evolve over time
-static void printChildrenInterfaces(const ContainerBasePrivate& container, bool success, const Stage& creator,
-                                    std::ostream& os = std::cerr) {
+__attribute__((unused))  // silent unused-function warning
+static void
+printChildrenInterfaces(const ContainerBasePrivate& container, bool success, const Stage& creator,
+                        std::ostream& os = std::cerr) {
 	static unsigned int id = 0;
 	const unsigned int width = 10;  // indentation of name
 	os << std::endl << (success ? '+' : '-') << ' ' << creator.name() << ' ';
@@ -1049,7 +1050,7 @@ void FallbacksPrivateConnect::compute() {
 
 void FallbacksPrivateConnect::onNewFailure(const Stage& child, const InterfaceState* from, const InterfaceState* to) {
 	// expect failure to be reported from active child
-	assert(active_ != children().end() && active_->get() == &child);
+	assert(active_ != children().end() && active_->get() == &child); (void)child;
 	// ... thus we can use std::next(active_) to find the next child
 	auto next = std::next(active_);
 
