@@ -308,6 +308,8 @@ Stage::Stage(StagePrivate* impl) : pimpl_(impl) {
 	auto& p = properties();
 	p.declare<double>("timeout", "timeout per run (s)");
 	p.declare<std::string>("marker_ns", name(), "marker namespace");
+	p.declare<TrajectoryExecutionInfo>("trajectory_execution_info", TrajectoryExecutionInfo(),
+	                                   "settings used when executing the trajectory");
 
 	p.declare<std::set<std::string>>("forwarded_properties", std::set<std::string>(),
 	                                 "set of interface properties to forward");
@@ -626,6 +628,9 @@ void PropagatingEitherWay::computeGeneric(const InterfaceState& start) {
 	else
 		send<dir>(start, InterfaceState(end), std::move(trajectory));
 }
+// Explicitly instantiate templates for both directions
+template void PropagatingEitherWay::computeGeneric<Interface::FORWARD>(const InterfaceState& start);
+template void PropagatingEitherWay::computeGeneric<Interface::BACKWARD>(const InterfaceState& start);
 
 PropagatingForwardPrivate::PropagatingForwardPrivate(PropagatingForward* me, const std::string& name)
   : PropagatingEitherWayPrivate(me, PropagatingEitherWay::FORWARD, name) {
