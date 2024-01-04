@@ -1,7 +1,11 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
+<<<<<<< HEAD
  *  Copyright (c) 2020, PickNik Inc
+=======
+ *  Copyright (c) 2023, PickNik Inc
+>>>>>>> ros-planning/ros2
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -47,26 +51,23 @@
 
 namespace {
 // TODO(henningkayser): support user-defined random number engines
-std::random_device rd_;
-std::mt19937 gen_(rd_());
+std::random_device RD;
+std::mt19937 GEN(RD());
 }  // namespace
 
-namespace moveit {
-namespace task_constructor {
-namespace stages {
+namespace moveit::task_constructor::stages {
 
 GenerateRandomPose::GenerateRandomPose(const std::string& name) : GeneratePose(name) {
 	auto& p = properties();
 	p.declare<geometry_msgs::msg::PoseStamped>("pose", "target pose to pass on in spawned states");
-	p.declare<size_t>("max_solutions", 20,
-	                  "limit of the number of spawned solution in case randomized sampling is enabled");
+	p.declare<size_t>("max_solutions", 20, "maximum number of spawned solutions in case randomized sampling is enabled");
 	p.property("timeout").setDefaultValue(1.0 /* seconds */);
 }
 
 template <>
 GenerateRandomPose::PoseDimensionSampler
 GenerateRandomPose::getPoseDimensionSampler<std::normal_distribution>(double stddev) {
-	return [stddev, &gen = gen_](double mean) {
+	return [stddev, &gen = GEN](double mean) {
 		static std::normal_distribution<double> dist(mean, stddev);
 		return dist(gen);
 	};
@@ -75,7 +76,7 @@ GenerateRandomPose::getPoseDimensionSampler<std::normal_distribution>(double std
 template <>
 GenerateRandomPose::PoseDimensionSampler
 GenerateRandomPose::getPoseDimensionSampler<std::uniform_real_distribution>(double range) {
-	return [range, &gen = gen_](double mean) {
+	return [range, &gen = GEN](double mean) {
 		static std::uniform_real_distribution<double> dist(mean - 0.5 * range, mean + 0.5 * range);
 		return dist(gen);
 	};
@@ -91,9 +92,12 @@ void GenerateRandomPose::compute() {
 
 	planning_scene::PlanningScenePtr scene = upstream_solutions_.pop()->end()->scene()->diff();
 	geometry_msgs::msg::PoseStamped target_pose = properties().get<geometry_msgs::msg::PoseStamped>("pose");
-	if (target_pose.header.frame_id.empty())
+	if (target_pose.header.frame_id.empty()) {
 		target_pose.header.frame_id = scene->getPlanningFrame();
-	else if (!scene->knowsFrameTransform(target_pose.header.frame_id)) {
+		RCLCPP_WARN(rclcpp::get_logger("GenerateRandomPose"),
+		            "No target pose frame specified, defaulting to scene planning frame: '%s'",
+		            target_pose.header.frame_id.c_str());
+	} else if (!scene->knowsFrameTransform(target_pose.header.frame_id)) {
 		RCLCPP_WARN(rclcpp::get_logger("GenerateRandomPose"), "Unknown frame: '%s'", target_pose.header.frame_id.c_str());
 		return;
 	}
@@ -157,6 +161,4 @@ void GenerateRandomPose::compute() {
 		elapsed_time = std::chrono::duration<double>(std::chrono::steady_clock::now() - start_time).count();
 	}
 }
-}  // namespace stages
-}  // namespace task_constructor
-}  // namespace moveit
+}  // namespace moveit::task_constructor::stages

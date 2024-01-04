@@ -275,8 +275,8 @@ class SolutionBase
 public:
 	virtual ~SolutionBase() = default;
 
-	inline const InterfaceState* start() const { return start_; }
-	inline const InterfaceState* end() const { return end_; }
+	[[nodiscard]] inline const InterfaceState* start() const { return start_; }
+	[[nodiscard]] inline const InterfaceState* end() const { return end_; }
 
 	/** Set the solution's start_state_
 	 *
@@ -298,23 +298,28 @@ public:
 		const_cast<InterfaceState&>(state).addIncoming(this);
 	}
 
-	inline const Stage* creator() const { return creator_; }
+	[[nodiscard]] inline const Stage* creator() const { return creator_; }
 	void setCreator(Stage* creator);
 
-	inline double cost() const { return cost_; }
+	[[nodiscard]] inline double cost() const { return cost_; }
 	void setCost(double cost);
 	void markAsFailure(const std::string& msg = std::string());
-	inline bool isFailure() const { return !std::isfinite(cost_); }
+	[[nodiscard]] inline bool isFailure() const { return !std::isfinite(cost_); }
 
-	const std::string& comment() const { return comment_; }
+	[[nodiscard]] const std::string& plannerId() const { return planner_id_; }
+	void setPlannerId(const std::string& planner_id) { planner_id_ = planner_id; }
+
+	[[nodiscard]] const std::string& comment() const { return comment_; }
 	void setComment(const std::string& comment) { comment_ = comment; }
 
-	auto& markers() { return markers_; }
+	[[nodiscard]] auto& markers() { return markers_; }
 	const auto& markers() const { return markers_; }
 
+	/// convert solution to message
+	void toMsg(moveit_task_constructor_msgs::msg::Solution& solution, Introspection* introspection = nullptr) const;
 	/// append this solution to Solution msg
-	virtual void fillMessage(moveit_task_constructor_msgs::msg::Solution& solution,
-	                         Introspection* introspection = nullptr) const = 0;
+	virtual void appendTo(moveit_task_constructor_msgs::msg::Solution& solution,
+	                      Introspection* introspection = nullptr) const = 0;
 	void fillInfo(moveit_task_constructor_msgs::msg::SolutionInfo& info, Introspection* introspection = nullptr) const;
 
 	/// required to dispatch to type-specific CostTerm methods via vtable
@@ -324,14 +329,17 @@ public:
 	bool operator<(const SolutionBase& other) const { return this->cost_ < other.cost_; }
 
 protected:
-	SolutionBase(Stage* creator = nullptr, double cost = 0.0, std::string comment = "")
-	  : creator_(creator), cost_(cost), comment_(std::move(comment)) {}
+	SolutionBase(Stage* creator = nullptr, double cost = 0.0, std::string comment = std::string(""),
+	             std::string planner_id = std::string(""))
+	  : creator_(creator), cost_(cost), planner_id_(std::move(planner_id)), comment_(std::move(comment)) {}
 
 private:
 	// back-pointer to creating stage, allows to access sub-solutions
 	Stage* creator_;
 	// associated cost
 	double cost_;
+	// name of the planner used to create this solution
+	std::string planner_id_;
 	// comment for this solution, e.g. explanation of failure
 	std::string comment_;
 	// markers for this solution, e.g. target frame or collision indicators
@@ -349,14 +357,14 @@ class SubTrajectory : public SolutionBase
 public:
 	SubTrajectory(
 	    const robot_trajectory::RobotTrajectoryConstPtr& trajectory = robot_trajectory::RobotTrajectoryConstPtr(),
-	    double cost = 0.0, std::string comment = "")
-	  : SolutionBase(nullptr, cost, std::move(comment)), trajectory_(trajectory) {}
+	    double cost = 0.0, std::string comment = std::string(""), std::string planner_id = std::string(""))
+	  : SolutionBase(nullptr, cost, std::move(comment), std::move(planner_id)), trajectory_(trajectory) {}
 
 	robot_trajectory::RobotTrajectoryConstPtr trajectory() const { return trajectory_; }
 	void setTrajectory(const robot_trajectory::RobotTrajectoryPtr& t) { trajectory_ = t; }
 
-	void fillMessage(moveit_task_constructor_msgs::msg::Solution& msg,
-	                 Introspection* introspection = nullptr) const override;
+	void appendTo(moveit_task_constructor_msgs::msg::Solution& msg,
+	              Introspection* introspection = nullptr) const override;
 
 	double computeCost(const CostTerm& cost, std::string& comment) const override;
 
@@ -389,7 +397,7 @@ public:
 	void push_back(const SolutionBase& solution);
 
 	/// append all subsolutions to solution
-	void fillMessage(moveit_task_constructor_msgs::msg::Solution& msg, Introspection* introspection) const override;
+	void appendTo(moveit_task_constructor_msgs::msg::Solution& msg, Introspection* introspection) const override;
 
 	double computeCost(const CostTerm& cost, std::string& comment) const override;
 
@@ -420,8 +428,8 @@ public:
 	  : SolutionBase(creator, cost), wrapped_(wrapped) {}
 	explicit WrappedSolution(Stage* creator, const SolutionBase* wrapped)
 	  : WrappedSolution(creator, wrapped, wrapped->cost()) {}
-	void fillMessage(moveit_task_constructor_msgs::msg::Solution& solution,
-	                 Introspection* introspection = nullptr) const override;
+	void appendTo(moveit_task_constructor_msgs::msg::Solution& solution,
+	              Introspection* introspection = nullptr) const override;
 
 	double computeCost(const CostTerm& cost, std::string& comment) const override;
 

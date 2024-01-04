@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2017, Bielefeld University
+ *  Copyright (c) 2023, Bielefeld University
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -33,41 +33,44 @@
  *********************************************************************/
 
 /* Authors: Robert Haschke
-   Desc:    plan using MoveIt's PlanningPipeline
+   Desc:    meta planner, running multiple planners in parallel or sequence
 */
 
 #pragma once
 
 #include <moveit/task_constructor/solvers/planner_interface.h>
-#include <moveit/macros/class_forward.h>
+#include <vector>
 
 namespace moveit {
 namespace task_constructor {
 namespace solvers {
 
-MOVEIT_CLASS_FORWARD(JointInterpolationPlanner);
+MOVEIT_CLASS_FORWARD(MultiPlanner);
 
-/** Interpolate a trajectory between states in joint space
+/** A meta planner that runs multiple alternative planners in sequence and returns the first found solution.
  *
- * Fails if direct joint space interpolation fails.
+ * This is useful to sequence different planning strategies of increasing complexity,
+ * e.g. Cartesian or joint-space interpolation first, then OMPL, ...
+ * This is (slightly) different from the Fallbacks container, as the MultiPlanner directly applies its planners to each
+ * individual planning job. In contrast, the Fallbacks container first runs the active child to exhaustion before
+ * switching to the next child, which possibly applies a different planning strategy.
  */
-class JointInterpolationPlanner : public PlannerInterface
+class MultiPlanner : public PlannerInterface, public std::vector<solvers::PlannerInterfacePtr>
 {
 public:
-	JointInterpolationPlanner();
+	using PlannerList = std::vector<solvers::PlannerInterfacePtr>;
+	using PlannerList::PlannerList;  // inherit all std::vector constructors
 
 	void init(const moveit::core::RobotModelConstPtr& robot_model) override;
 
 	bool plan(const planning_scene::PlanningSceneConstPtr& from, const planning_scene::PlanningSceneConstPtr& to,
-	          const core::JointModelGroup* jmg, double timeout, robot_trajectory::RobotTrajectoryPtr& result,
+	          const moveit::core::JointModelGroup* jmg, double timeout, robot_trajectory::RobotTrajectoryPtr& result,
 	          const moveit_msgs::msg::Constraints& path_constraints = moveit_msgs::msg::Constraints()) override;
 
 	bool plan(const planning_scene::PlanningSceneConstPtr& from, const moveit::core::LinkModel& link,
 	          const Eigen::Isometry3d& offset, const Eigen::Isometry3d& target, const moveit::core::JointModelGroup* jmg,
 	          double timeout, robot_trajectory::RobotTrajectoryPtr& result,
 	          const moveit_msgs::msg::Constraints& path_constraints = moveit_msgs::msg::Constraints()) override;
-
-	std::string getPlannerId() const override { return std::string("JointInterpolationPlanner"); }
 };
 }  // namespace solvers
 }  // namespace task_constructor

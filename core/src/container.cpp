@@ -371,6 +371,7 @@ void ContainerBase::insert(Stage::pointer&& stage, int before) {
 
 	StagePrivate* impl = stage->pimpl();
 	impl->setParent(this);
+
 	ContainerBasePrivate::const_iterator where = pimpl()->childByIndex(before, true);
 	ContainerBasePrivate::iterator it = pimpl()->children_.insert(where, std::move(stage));
 	impl->setParentPosition(it);
@@ -449,6 +450,20 @@ void ContainerBase::init(const moveit::core::RobotModelConstPtr& robot_model) {
 
 	if (errors)
 		throw errors;
+}
+
+void ContainerBase::explainFailure(std::ostream& os) const {
+	for (const auto& stage : pimpl()->children()) {
+		if (!stage->solutions().empty())
+			continue;  // skip deeper traversal, this stage produced solutions
+		if (stage->numFailures()) {
+			os << stage->name() << " (0/" << stage->numFailures() << ")";
+			stage->explainFailure(os);
+			os << std::endl;
+			break;
+		}
+		stage->explainFailure(os);  // recursively process children
+	}
 }
 
 std::ostream& operator<<(std::ostream& os, const ContainerBase& container) {
@@ -695,6 +710,7 @@ void SerialContainer::compute() {
 			stage->pimpl()->runCompute();
 	}
 }
+
 
 ParallelContainerBasePrivate::ParallelContainerBasePrivate(ParallelContainerBase* me, const std::string& name)
   : ContainerBasePrivate(me, name) {}

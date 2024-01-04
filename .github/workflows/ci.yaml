@@ -19,7 +19,6 @@ jobs:
       fail-fast: false
       matrix:
         env:
-          - IMAGE: humble-source
           - IMAGE: rolling-source
             NAME: ccov
             TARGET_CMAKE_ARGS: -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="--coverage"
@@ -42,9 +41,6 @@ jobs:
       UNDERLAY: /root/ws_moveit/install
       # TODO: Port to ROS2
       # DOWNSTREAM_WORKSPACE: "github:ubi-agni/mtc_demos#master github:TAMS-Group/mtc_pour#master"
-      # Silent googletest warnings: https://github.com/ament/ament_cmake/pull/408#issuecomment-1306004975
-      UPSTREAM_WORKSPACE: github:ament/googletest#clalancette/update-to-gtest-1.11
-      AFTER_SETUP_UPSTREAM_WORKSPACE: dpkg --purge --force-all ros-rolling-gtest-vendor ros-rolling-gmock-vendor
       TARGET_CMAKE_ARGS: -DCMAKE_BUILD_TYPE=Release
       CCACHE_DIR: ${{ github.workspace }}/.ccache
       BASEDIR: ${{ github.workspace }}/.work

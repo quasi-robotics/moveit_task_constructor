@@ -75,7 +75,7 @@ bool CartesianPath::plan(const planning_scene::PlanningSceneConstPtr& from,
 
 	// reach pose of forward kinematics
 	return plan(from, *link, Eigen::Isometry3d::Identity(), to->getCurrentState().getGlobalLinkTransform(link), jmg,
-	            timeout, result, path_constraints);
+	            std::min(timeout, properties().get<double>("timeout")), result, path_constraints);
 }
 
 bool CartesianPath::plan(const planning_scene::PlanningSceneConstPtr& from, const moveit::core::LinkModel& link,
@@ -101,7 +101,7 @@ bool CartesianPath::plan(const planning_scene::PlanningSceneConstPtr& from, cons
 	double achieved_fraction = moveit::core::CartesianInterpolator::computeCartesianPath(
 	    &(sandbox_scene->getCurrentStateNonConst()), jmg, trajectory, &link, target, true,
 	    moveit::core::MaxEEFStep(props.get<double>("step_size")),
-	    moveit::core::JumpThreshold(props.get<double>("jump_threshold")), is_valid,
+	    moveit::core::JumpThreshold::relative(props.get<double>("jump_threshold")), is_valid,
 	    props.get<kinematics::KinematicsQueryOptions>("kinematics_options"),
 	    props.get<kinematics::KinematicsBase::IKCostFn>("kinematics_cost_fn"), offset);
 

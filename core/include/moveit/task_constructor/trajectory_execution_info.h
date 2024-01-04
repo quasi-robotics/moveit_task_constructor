@@ -32,35 +32,16 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-/* Authors: Joe Schornak
-   Desc:    Define a struct to hold options used to configure trajectory execution
-*/
+/* Authors: Joe Schornak, Sebastian Jahr */
 
 #pragma once
 
 #include <moveit_task_constructor_msgs/msg/trajectory_execution_info.hpp>
-#include <std_msgs/msg/string.hpp>
 #include <string>
 #include <vector>
 
-namespace {
-using TrajectoryExecutionInfoMsg = moveit_task_constructor_msgs::msg::TrajectoryExecutionInfo;
-}
-
 namespace moveit {
 namespace task_constructor {
-struct TrajectoryExecutionInfo
-{
-	TrajectoryExecutionInfo() {}
-
-	TrajectoryExecutionInfo(const TrajectoryExecutionInfoMsg& msg) { controller_names = msg.controller_names; }
-
-	TrajectoryExecutionInfoMsg toMsg() const {
-		return moveit_task_constructor_msgs::build<TrajectoryExecutionInfoMsg>().controller_names(controller_names);
-	}
-
-	std::vector<std::string> controller_names;
-};
-
+using TrajectoryExecutionInfo = moveit_task_constructor_msgs::msg::TrajectoryExecutionInfo;
 }  // namespace task_constructor
 }  // namespace moveit
