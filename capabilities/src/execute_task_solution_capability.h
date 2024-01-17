@@ -68,6 +68,7 @@ private:
 	rclcpp_action::CancelResponse
 	preemptCallback(const std::shared_ptr<rclcpp_action::ServerGoalHandle<ExecuteTaskSolutionAction>>& goal_handle);
 
+    rclcpp::CallbackGroup::SharedPtr cg_;
 	ActionServerType::SharedPtr as_;
 	std::future<void> last_goal_future_;
 };

@@ -88,6 +88,7 @@ ExecuteTaskSolutionCapability::ExecuteTaskSolutionCapability() : MoveGroupCapabi
 
 void ExecuteTaskSolutionCapability::initialize() {
 	// configure the action server
+	cg_ = context_->moveit_cpp_->getNode()->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
 	as_ = rclcpp_action::create_server<moveit_task_constructor_msgs::action::ExecuteTaskSolution>(
 	    context_->moveit_cpp_->getNode(), "execute_task_solution",
 	    [this](const rclcpp_action::GoalUUID& /*uuid*/,
@@ -105,7 +106,8 @@ void ExecuteTaskSolutionCapability::initialize() {
 	    [this](const std::shared_ptr<rclcpp_action::ServerGoalHandle<ExecuteTaskSolutionAction>>& goal_handle) {
 		    last_goal_future_ =
 		        std::async(std::launch::async, &ExecuteTaskSolutionCapability::goalCallback, this, goal_handle);
-	    });
+	    },
+        rcl_action_server_get_default_options(), cg_);
 }
 
 void ExecuteTaskSolutionCapability::goalCallback(
