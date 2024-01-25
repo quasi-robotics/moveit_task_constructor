@@ -77,8 +77,14 @@ bool JointInterpolationPlanner::plan(const planning_scene::PlanningSceneConstPtr
 
 	// add first point
 	result->addSuffixWayPoint(from->getCurrentState(), 0.0);
-	if (from->isStateColliding(from_state, jmg->getName()) || !from_state.satisfiesBounds(jmg))
+	if (from->isStateColliding(from_state, jmg->getName())) {
+    RCLCPP_ERROR_STREAM(LOGGER, "start state for model group " << jmg->getName() << " is in collision");
 		return false;
+  }
+  if (!from_state.satisfiesBounds(jmg)) {
+    RCLCPP_ERROR_STREAM(LOGGER, "start state for model group " << jmg->getName() << " is out of bounds");
+    return false;
+  }
 
 	moveit::core::RobotState waypoint(from_state);
 	double delta = d < 1e-6 ? 1.0 : props.get<double>("max_step") / d;
@@ -86,14 +92,26 @@ bool JointInterpolationPlanner::plan(const planning_scene::PlanningSceneConstPtr
 		from_state.interpolate(to_state, t, waypoint);
 		result->addSuffixWayPoint(waypoint, t);
 
-		if (from->isStateColliding(waypoint, jmg->getName()) || !waypoint.satisfiesBounds(jmg))
-			return false;
+    if (from->isStateColliding(waypoint, jmg->getName())) {
+      RCLCPP_ERROR_STREAM(LOGGER, "waypoint " << t << " state for model group " << jmg->getName() << " is in collision");
+      return false;
+    }
+    if (!waypoint.satisfiesBounds(jmg)) {
+      RCLCPP_ERROR_STREAM(LOGGER, "waypoint \" << t << \" state for model group " << jmg->getName() << " is out of bounds");
+      return false;
+    }
 	}
 
 	// add goal point
 	result->addSuffixWayPoint(to_state, 1.0);
-	if (from->isStateColliding(to_state, jmg->getName()) || !to_state.satisfiesBounds(jmg))
-		return false;
+  if (from->isStateColliding(to_state, jmg->getName())) {
+    RCLCPP_ERROR_STREAM(LOGGER, "goal state for model group " << jmg->getName() << " is in collision");
+    return false;
+  }
+  if (!to_state.satisfiesBounds(jmg)) {
+    RCLCPP_ERROR_STREAM(LOGGER, "goal state for model group " << jmg->getName() << " is out of bounds");
+    return false;
+  }
 
 	auto timing = props.get<TimeParameterizationPtr>("time_parameterization");
 	timing->computeTimeStamps(*result, props.get<double>("max_velocity_scaling_factor"),
