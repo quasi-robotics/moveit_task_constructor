@@ -93,7 +93,7 @@ bool CartesianPath::plan(const planning_scene::PlanningSceneConstPtr& from, cons
 	                                       const double* joint_positions) {
 		state->setJointGroupPositions(jmg, joint_positions);
 		state->update();
-		return !sandbox_scene->isStateColliding(const_cast<const moveit::core::RobotState&>(*state), jmg->getName()) &&
+		return !sandbox_scene->isStateColliding(const_cast<const moveit::core::RobotState&>(*state), jmg->getName(), true) &&
 		       kcs.decide(*state).satisfied;
 	};
 
@@ -114,6 +114,7 @@ bool CartesianPath::plan(const planning_scene::PlanningSceneConstPtr& from, cons
 	timing->computeTimeStamps(*result, props.get<double>("max_velocity_scaling_factor"),
 	                          props.get<double>("max_acceleration_scaling_factor"));
 
+	RCLCPP_DEBUG_STREAM(LOGGER, "Achieved fraction: " << achieved_fraction);
 	return achieved_fraction >= props.get<double>("min_fraction");
 }
 }  // namespace solvers

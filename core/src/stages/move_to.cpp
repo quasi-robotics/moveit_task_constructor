@@ -209,8 +209,10 @@ bool MoveTo::compute(const InterfaceState& state, planning_scene::PlanningSceneP
 	if (getJointStateGoal(goal, jmg, scene->getCurrentStateNonConst())) {
 		// plan to joint-space target
 		success = planner_->plan(state.scene(), scene, jmg, timeout, robot_trajectory, path_constraints);
+		RCLCPP_DEBUG_STREAM(LOGGER, "Joint state planner returned " << success);
 		solution.setPlannerId(planner_->getPlannerId());
 	} else {  // Cartesian goal
+		RCLCPP_DEBUG_STREAM(LOGGER, "Using cartesian space planner with IK");
 		// Where to go?
 		Eigen::Isometry3d target;
 		// What frame+offset in the robot should go there?
@@ -218,10 +220,13 @@ bool MoveTo::compute(const InterfaceState& state, planning_scene::PlanningSceneP
 
 		const moveit::core::LinkModel* link;
 		Eigen::Isometry3d ik_pose_world;
-		if (!utils::getRobotTipForFrame(props.property("ik_frame"), *scene, jmg, solution, link, ik_pose_world))
+		if (!utils::getRobotTipForFrame(props.property("ik_frame"), *scene, jmg, solution, link, ik_pose_world)) {
+			RCLCPP_DEBUG_STREAM(LOGGER, "getRobotTipForFrame failed");
 			return false;
+		}
 
 		if (!getPoseGoal(goal, scene, target) && !getPointGoal(goal, ik_pose_world, scene, target)) {
+			RCLCPP_DEBUG_STREAM(LOGGER, "getPoseGoal failed");
 			solution.markAsFailure(std::string("invalid goal type: ") + goal.type().name());
 			return false;
 		}
@@ -242,6 +247,7 @@ bool MoveTo::compute(const InterfaceState& state, planning_scene::PlanningSceneP
 
 		// plan to Cartesian target
 		success = planner_->plan(state.scene(), *link, offset, target, jmg, timeout, robot_trajectory, path_constraints);
+		RCLCPP_DEBUG_STREAM(LOGGER, "Cartesian space target planner returned " << success);
 		solution.setPlannerId(planner_->getPlannerId());
 	}
 
@@ -261,7 +267,9 @@ bool MoveTo::compute(const InterfaceState& state, planning_scene::PlanningSceneP
 			solution.markAsFailure();
 
 		return true;
-	}
+	} else
+		RCLCPP_ERROR_STREAM(LOGGER, "no trajectory returned by planner");
+
 	return false;
 }
 

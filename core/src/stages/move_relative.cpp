@@ -199,6 +199,7 @@ bool MoveRelative::compute(const InterfaceState& state, planning_scene::Planning
 	if (getJointStateFromOffset(direction, dir, jmg, scene->getCurrentStateNonConst())) {
 		// plan to joint-space target
 		success = planner_->plan(state.scene(), scene, jmg, timeout, robot_trajectory, path_constraints);
+		RCLCPP_DEBUG_STREAM(LOGGER, "Joint state planner returned " << success);
 		solution.setPlannerId(planner_->getPlannerId());
 	} else {
 		// Cartesian targets require an IK reference frame
@@ -288,6 +289,7 @@ bool MoveRelative::compute(const InterfaceState& state, planning_scene::Planning
 
 		success =
 		    planner_->plan(state.scene(), *link, offset, target_eigen, jmg, timeout, robot_trajectory, path_constraints);
+		RCLCPP_DEBUG_STREAM(LOGGER, "Cartesian space target planner returned " << success << ", trajectory: " << bool(robot_trajectory));
 		solution.setPlannerId(planner_->getPlannerId());
 
 		if (robot_trajectory) {  // the following requires a robot_trajectory returned from planning
@@ -308,6 +310,7 @@ bool MoveRelative::compute(const InterfaceState& state, planning_scene::Planning
 				if (!success) {
 					char msg[100];
 					snprintf(msg, sizeof(msg), "min_distance not reached (%.3g < %.3g)", distance, min_distance);
+					RCLCPP_DEBUG(LOGGER, msg);
 					solution.setComment(msg);
 				}
 			} else if (min_distance == 0.0) {  // if min_distance is zero, we succeed in any case

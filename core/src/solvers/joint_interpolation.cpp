@@ -77,7 +77,7 @@ bool JointInterpolationPlanner::plan(const planning_scene::PlanningSceneConstPtr
 
 	// add first point
 	result->addSuffixWayPoint(from->getCurrentState(), 0.0);
-	if (from->isStateColliding(from_state, jmg->getName())) {
+	if (from->isStateColliding(from_state, jmg->getName(), true)) {
     RCLCPP_ERROR_STREAM(LOGGER, "start state for model group " << jmg->getName() << " is in collision");
 		return false;
   }
@@ -92,7 +92,7 @@ bool JointInterpolationPlanner::plan(const planning_scene::PlanningSceneConstPtr
 		from_state.interpolate(to_state, t, waypoint);
 		result->addSuffixWayPoint(waypoint, t);
 
-    if (from->isStateColliding(waypoint, jmg->getName())) {
+    if (from->isStateColliding(waypoint, jmg->getName(), true)) {
       RCLCPP_ERROR_STREAM(LOGGER, "waypoint " << t << " state for model group " << jmg->getName() << " is in collision");
       return false;
     }
@@ -104,7 +104,7 @@ bool JointInterpolationPlanner::plan(const planning_scene::PlanningSceneConstPtr
 
 	// add goal point
 	result->addSuffixWayPoint(to_state, 1.0);
-  if (from->isStateColliding(to_state, jmg->getName())) {
+  if (from->isStateColliding(to_state, jmg->getName(), true)) {
     RCLCPP_ERROR_STREAM(LOGGER, "goal state for model group " << jmg->getName() << " is in collision");
     return false;
   }
